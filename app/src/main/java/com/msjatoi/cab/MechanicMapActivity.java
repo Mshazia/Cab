@@ -107,7 +107,7 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-
+        //Hello Testing
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval( 1000 );
         mLocationRequest.setFastestInterval( 1000 );
