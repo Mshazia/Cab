@@ -42,6 +42,7 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
     GoogleApiClient mGoogleApiClient;
     Location mlastlocation;
     LocationRequest mLocationRequest;
+    private String shaziaTesting;
 
     private Button LougoutBtn,SettingsBtn,mRequest;
 
