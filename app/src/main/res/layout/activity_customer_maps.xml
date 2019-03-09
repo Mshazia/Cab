@@ -18,22 +18,22 @@
 
     <Button
         android:id="@+id/customer_seetgbtn"
-        android:layout_width="194dp"
+        android:layout_width="199dp"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:layout_marginStart="0dp"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="7dp"
         android:text="Settings" />
 
     <Button
         android:id="@+id/customer_logbtn"
-        android:layout_width="193dp"
-        android:layout_height="60dp"
+        android:layout_width="187dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginTop="6dp"
-        android:layout_marginEnd="12dp"
+        android:layout_marginTop="11dp"
+        android:layout_marginEnd="0dp"
         android:text="Logout" />
 
     <Button
