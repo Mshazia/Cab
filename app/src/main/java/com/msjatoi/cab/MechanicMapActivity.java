@@ -36,6 +36,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -194,13 +195,20 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
         mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
 
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        Log.d("Testing Firebase UserId", userId);
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference().child( "mechanicsAvailable" );
-
+        Log.d("Testing Database ref", String.valueOf(ref));
         GeoFire geoFire= new GeoFire( ref );
-        geoFire.setLocation( userId,new GeoLocation( location.getLatitude(),location.getLongitude() ) );
+        Log.d("Testing geo fire ref", String.valueOf(geoFire));
+            geoFire.setLocation(userId,new GeoLocation(location.getLatitude(),location.getLongitude()),new
+                    GeoFire.CompletionListener(){
+                        @Override
+                        public void onComplete(String key, DatabaseError error) {
+
+                        }
+                    });
 
         }
-
 
 
         @Override
