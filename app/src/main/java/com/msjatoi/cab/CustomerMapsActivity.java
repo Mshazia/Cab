@@ -110,7 +110,13 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
 
                     GeoFire geoFire = new GeoFire( customerDatabaseRef );
                     Log.d(" customerDatabaseRef", String.valueOf(geoFire));
-                    geoFire.setLocation( customerID,new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLongitude() ) );
+                    geoFire.setLocation( customerID,new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLongitude()) ,new
+                            GeoFire.CompletionListener(){
+                                @Override
+                                public void onComplete(String key, DatabaseError error) {
+
+                                }
+                            });
                     Log.d( "Testing GeoLocation",String.valueOf( geoFire) );
 
 
