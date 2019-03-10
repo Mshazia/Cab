@@ -37,6 +37,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -46,15 +47,17 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
         private GoogleMap mMap;
         GoogleApiClient mGoogleApiClient;
         Location mLastLocation;
-        Marker mCurrLocationMarker;
         LocationRequest mLocationRequest;
-        int PROXIMITY_RADIUS = 10000;
         double latitude, longitude;
-        double end_latitude, end_longitude;
 
-    private Button LougoutBtn,SettingsBtn,mRequest;
+    private Button LougoutBtn,SettingsBtn,callMechanicBTN;
+    private String customerID;
+    private FirebaseAuth mAuth;
+    private FirebaseUser currentUser;
+    private DatabaseReference customerDatabaseRef;
 
-    private LatLng pickupLocation;
+    private LatLng customerpickupLocation;
+
 
         @Override
         protected void onCreate(Bundle savedInstanceState) {
@@ -79,35 +82,48 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
                 .findFragmentById( R.id.map);
         mapFragment.getMapAsync(this);
 
+        mAuth = FirebaseAuth.getInstance();
+        currentUser = mAuth.getCurrentUser();
+        customerID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            Log.d(" Firebase customerID",  customerID);
+        customerDatabaseRef = FirebaseDatabase.getInstance().getReference().child( "Customers Requests" );
+            Log.d("customerDatabaseRef", String.valueOf(customerDatabaseRef));
+
+
+
             LougoutBtn = findViewById( R.id.customer_logbtn );
             SettingsBtn = findViewById( R.id.customer_seetgbtn );
-            mRequest = findViewById( R.id.callmechbtn );
+            callMechanicBTN = findViewById( R.id.callmechbtn );
 
             LougoutBtn.setOnClickListener( new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    FirebaseAuth.getInstance().signOut();
-                    Intent intent = new Intent(CustomerMapsActivity .this,WelcomeActivity.class );
-                    startActivity( intent );
-                    finish();
-                    return;
+                    mAuth.signOut();
+                    LogoutCustomer();
+
                 }
             } );
 
-            mRequest.setOnClickListener( new View.OnClickListener() {
+            callMechanicBTN.setOnClickListener( new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
 
-                    getClosestMechanic();
+                    GeoFire geoFire = new GeoFire( customerDatabaseRef );
+                    Log.d(" customerDatabaseRef", String.valueOf(geoFire));
+                    geoFire.setLocation( customerID,new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLongitude() ) );
+                    Log.d( "Testing GeoLocation",String.valueOf( geoFire) );
+
+
+                    customerpickupLocation = new LatLng( mLastLocation .getLatitude(),mLastLocation.getLongitude());
+                    Log.d( "Testing Latlng",String.valueOf( customerpickupLocation ) );
+                    mMap.addMarker( new MarkerOptions().position(customerpickupLocation).title( "Pickup here" ));
+
 
                 }
             } );
 
                 }
 
-    private void getClosestMechanic() {
-
-    }
 
     private boolean CheckGooglePlayServices() {
         GoogleApiAvailability googleAPI = GoogleApiAvailability.getInstance();
@@ -123,15 +139,7 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
     }
 
 
-        /**
-         * Manipulates the map once available.
-         * This callback is triggered when the map is ready to be used.
-         * This is where we can add markers or lines, add listeners or move the camera. In this case,
-         * we just add a marker near Sydney, Australia.
-         * If Google Play services is not installed on the device, the user will be prompted to install
-         * it inside the SupportMapFragment. This method will only be triggered once the user has
-         * installed Google Play services and returned to the app.
-         */
+
         @Override
         public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -280,6 +288,14 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
         }
     }
 
+    private void LogoutCustomer() {
+        Intent welcomeIntent = new Intent( CustomerMapsActivity.this,WelcomeActivity.class);
+        welcomeIntent.addFlags( Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        startActivity( welcomeIntent );
+        finish();
+
+    }
 
 
 
