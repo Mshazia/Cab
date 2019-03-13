@@ -12,6 +12,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -242,34 +243,29 @@ Marker pickupMarker;
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference().child( "mechanicsAvailable" );
-            DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference().child( "mechanicsWorking" );
             GeoFire geoFireAvailable= new GeoFire( refAvailable );
-            geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
-                @Override
-                public void onComplete(String key, DatabaseError error) {
-
-                }
-            } );
+            DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference().child( "mechanicsWorking" );
             GeoFire geoFireWorking= new GeoFire( refWorking );
 
-            switch (customerId){
+            if (TextUtils.isEmpty(customerId)) {
+                geoFireWorking.removeLocation( userId );
+                geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                    @Override
+                    public void onComplete(String key, DatabaseError error) {
 
-                case "":
-                    geoFireWorking.removeLocation( userId );
-                    geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ));
+                    }
+                } );
 
-                    break;
+            }else{
 
-                    default:
-                        geoFireAvailable.removeLocation( userId );
-                        geoFireWorking.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ));
+                geoFireAvailable.removeLocation( userId );
+                geoFireWorking.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                    @Override
+                    public void onComplete(String key, DatabaseError error) {
 
-
-                        break;
+                    }
+                } );
             }
-
-
-
 
         }
 
