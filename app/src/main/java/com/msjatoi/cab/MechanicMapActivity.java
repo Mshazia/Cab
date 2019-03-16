@@ -12,7 +12,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -56,7 +55,6 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener
 {
-
     private GoogleMap mMap;
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
@@ -65,6 +63,8 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
     double latitude, longitude;
     private Button mLogout;
     private String customerId = "";
+
+    private Boolean isLogingOut  = false;
 
 
     @Override
@@ -90,6 +90,10 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
         mLogout.setOnClickListener( new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                isLogingOut  = true;
+
+                dissconnectMechanic();
+
                 FirebaseAuth.getInstance().signOut();
                 Intent intent = new Intent( MechanicMapActivity.this, WelcomeActivity.class );
                 startActivity( intent );
@@ -107,8 +111,8 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()){
-                        customerId = dataSnapshot.getValue().toString();
-                        getAssignedCustomerPickupLocation();
+                    customerId = dataSnapshot.getValue().toString();
+                    getAssignedCustomerPickupLocation();
                 }else {
                     customerId = "";
                     if (pickupMarker!= null){
@@ -128,7 +132,7 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
         } );
 
     }
-Marker pickupMarker;
+    Marker pickupMarker;
     private  DatabaseReference AssignedCustomerPickupLocationRef;
     private ValueEventListener AssignedCustomerPickupLocationRefListener;
     private void getAssignedCustomerPickupLocation() {
@@ -146,11 +150,11 @@ Marker pickupMarker;
 
                     if (map.get( 1) != null) {
 
-                            locationLng = Double.parseDouble( map.get( 1 ).toString() );
+                        locationLng = Double.parseDouble( map.get( 1 ).toString() );
 
                     }
                     LatLng mechanicLatLng = new LatLng( locationLat,locationLng );
-                    pickupMarker = mMap.addMarker( new MarkerOptions().position( mechanicLatLng ).title( "pickup location"));
+                    pickupMarker = mMap.addMarker( new MarkerOptions().position( mechanicLatLng ).title( "pickup location") );
 
                 }
             }
@@ -243,29 +247,47 @@ Marker pickupMarker;
             String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
             DatabaseReference refAvailable = FirebaseDatabase.getInstance().getReference().child( "mechanicsAvailable" );
-            GeoFire geoFireAvailable= new GeoFire( refAvailable );
             DatabaseReference refWorking = FirebaseDatabase.getInstance().getReference().child( "mechanicsWorking" );
+            GeoFire geoFireAvailable= new GeoFire( refAvailable );
+            geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                @Override
+                public void onComplete(String key, DatabaseError error) {
+
+                }
+            } );
             GeoFire geoFireWorking= new GeoFire( refWorking );
 
-            if (TextUtils.isEmpty(customerId)) {
-                geoFireWorking.removeLocation( userId );
-                geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
-                    @Override
-                    public void onComplete(String key, DatabaseError error) {
+            switch (customerId){
 
-                    }
-                } );
+                case "":
+                    //  geoFireWorking.removeLocation( userId );
+                    //after removing above code app is running
 
-            }else{
+                    geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                        @Override
+                        public void onComplete(String key, DatabaseError error) {
 
-                geoFireAvailable.removeLocation( userId );
-                geoFireWorking.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
-                    @Override
-                    public void onComplete(String key, DatabaseError error) {
+                        }
+                    } );
 
-                    }
-                } );
+                    break;
+
+                default:
+                    geoFireAvailable.removeLocation( userId );
+                    geoFireWorking.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                        @Override
+                        public void onComplete(String key, DatabaseError error) {
+
+                        }
+                    } );
+
+
+
+                    break;
             }
+
+
+
 
         }
 
@@ -282,7 +304,7 @@ Marker pickupMarker;
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
     }
-//already in gmap app
+    //already in gmap app
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     public boolean checkLocationPermission(){
         if (ContextCompat.checkSelfPermission(this,
@@ -314,7 +336,7 @@ Marker pickupMarker;
             return true;
         }
     }
-//already in gmap
+    //already in gmap
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
@@ -342,19 +364,26 @@ Marker pickupMarker;
             }
         }
     }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
+    private void dissconnectMechanic(){
         String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference().child( "mechanicsAvailable" );
 
         GeoFire geoFire= new GeoFire( ref );
         geoFire.removeLocation( userId );
 
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (!isLogingOut){
+            dissconnectMechanic();
+
+
+        }
 
     }
 
 }
+
 
 

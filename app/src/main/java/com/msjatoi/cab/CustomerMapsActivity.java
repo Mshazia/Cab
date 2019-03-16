@@ -38,98 +38,237 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.HashMap;
+import java.util.List;
 
 public class CustomerMapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, com.google.android.gms.location.LocationListener {
 
-        private GoogleMap mMap;
-        GoogleApiClient mGoogleApiClient;
-        Location mLastLocation;
-        LocationRequest mLocationRequest;
-        double latitude, longitude;
+    private GoogleMap mMap;
+    GoogleApiClient mGoogleApiClient;
+    Location mLastLocation;
+    LocationRequest mLocationRequest;
+    double latitude, longitude;
 
-    private Button LougoutBtn,SettingsBtn,callMechanicBTN;
-    private String customerID;
-    private FirebaseAuth mAuth;
-    private FirebaseUser currentUser;
-    private DatabaseReference customerDatabaseRef;
-
-    private LatLng customerpickupLocation;
+    private Button LougoutBtn,SettingsBtn,mRequestBtn;
+    private LatLng pickupLocation;
+    private Boolean requestBol = false;
+    private Marker pickupMarker;
 
 
-        @Override
-        protected void onCreate(Bundle savedInstanceState) {
+
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView( R.layout.activity_customer_maps);
-
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            checkLocationPermission();
-        }
-
+            checkLocationPermission();}
         //Check if Google Play Services Available or not
-        if (!CheckGooglePlayServices()) {
-            Log.d("onCreate", "Finishing test case since Google Play Services are not available");
-            finish();
-        }
-        else {
-            Log.d("onCreate","Google Play Services available.");
-        }
-
+        if (!CheckGooglePlayServices()) { Log.d("onCreate", "Finishing test case since Google Play Services are not available");
+            finish();        } else {            Log.d("onCreate","Google Play Services available.");        }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById( R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()     .findFragmentById( R.id.map);
         mapFragment.getMapAsync(this);
 
-        mAuth = FirebaseAuth.getInstance();
-        currentUser = mAuth.getCurrentUser();
-        customerID = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            Log.d(" Firebase customerID",  customerID);
-        customerDatabaseRef = FirebaseDatabase.getInstance().getReference().child( "Customers Requests" );
-            Log.d("customerDatabaseRef", String.valueOf(customerDatabaseRef));
 
+        LougoutBtn = findViewById( R.id.customer_logbtn );
+        mRequestBtn = findViewById( R.id.callmechbtn );
+        SettingsBtn = findViewById( R.id.customer_seetgbtn);
+        LougoutBtn.setOnClickListener( new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FirebaseAuth.getInstance().signOut();
+                Intent intent = new Intent( CustomerMapsActivity.this,WelcomeActivity.class );
+                startActivity( intent );
+                finish();
+                return;
+            }
+        } );
+        mRequestBtn.setOnClickListener( new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
 
+                if (requestBol){
+                    requestBol = false;
 
-            LougoutBtn = findViewById( R.id.customer_logbtn );
-            SettingsBtn = findViewById( R.id.customer_seetgbtn );
-            callMechanicBTN = findViewById( R.id.callmechbtn );
+                    geoQuery.removeAllListeners();
 
-            LougoutBtn.setOnClickListener( new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mAuth.signOut();
-                    LogoutCustomer();
+                    mechanicLocationRef.removeEventListener( mechanicLocationRefListener );
 
-                }
-            } );
+                    if (mechanicFoundID != null){
+                        DatabaseReference mechanicRef = FirebaseDatabase.getInstance().getReference().child( "Users").child("Mechanics" ).child( mechanicFoundID );
+                        mechanicRef.setValue(true);
+                        mechanicFoundID = null;
 
-            callMechanicBTN.setOnClickListener( new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
+                    }
+                    mechanicFound = false;
+                    radius = 1;
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-                    GeoFire geoFire = new GeoFire( customerDatabaseRef );
-                    Log.d(" customerDatabaseRef", String.valueOf(geoFire));
-                    geoFire.setLocation( customerID,new GeoLocation(mLastLocation.getLatitude(),mLastLocation.getLongitude()) ,new
+                    DatabaseReference ref =FirebaseDatabase.getInstance().getReference("customerRequest");
+                    GeoFire geoFire = new  GeoFire(ref);
+                    geoFire.removeLocation( userId );
+                    if (pickupMarker != null){
+                        pickupMarker.remove();
+                    }
+                    mRequestBtn.setText( "Call Mechanic" );
+
+                }else {
+                    requestBol = true;
+
+                    String userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+                    DatabaseReference ref =FirebaseDatabase.getInstance().getReference("customerRequest");
+                    GeoFire geoFire = new  GeoFire(ref);
+                    geoFire.setLocation( userId,new GeoLocation( mLastLocation.getLatitude(),mLastLocation.getLongitude() ),new
                             GeoFire.CompletionListener(){
                                 @Override
                                 public void onComplete(String key, DatabaseError error) {
 
                                 }
                             });
-                    Log.d( "Testing GeoLocation",String.valueOf( geoFire) );
+                    pickupLocation = new LatLng( mLastLocation.getLatitude(),mLastLocation.getLongitude());
+                    pickupMarker =  mMap.addMarker( new MarkerOptions().position( pickupLocation ).title( "Pickup here" ).icon( BitmapDescriptorFactory.fromResource( R.mipmap.ic_launcherg ) ) );
 
+                    mRequestBtn.setText( "Getting your Mechanic....." );
+                    getClosestMechanic();
+                }
 
-                    customerpickupLocation = new LatLng( mLastLocation .getLatitude(),mLastLocation.getLongitude());
-                    Log.d( "Testing Latlng",String.valueOf( customerpickupLocation ) );
-                    mMap.addMarker( new MarkerOptions().position(customerpickupLocation).title( "Pickup here" ));
+            }
+        } );
+        SettingsBtn.setOnClickListener( new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent( CustomerMapsActivity.this, CustomerSettingsActivity.class);
+                startActivity( intent );
+                return;
+            }
+        } );
+    }
+    private int radius = 1;
+    private Boolean mechanicFound = false;
+    private String mechanicFoundID;
+
+    GeoQuery geoQuery;
+    private void getClosestMechanic() {
+        DatabaseReference mechanicLocation = FirebaseDatabase.getInstance().getReference().child( "mechanicsAvailable" );
+
+        GeoFire geoFire = new GeoFire( mechanicLocation );
+
+        geoQuery = geoFire.queryAtLocation( new GeoLocation( pickupLocation.latitude,pickupLocation.longitude ) ,radius);
+        geoQuery.removeAllListeners();
+
+        geoQuery.addGeoQueryEventListener( new GeoQueryEventListener() {
+            @Override
+            public void onKeyEntered(String key, GeoLocation location) {
+                if (!mechanicFound && requestBol){
+                    mechanicFound = true;
+                    mechanicFoundID = key;
+//share information btween customer and mechanic
+                    //blo for telling mechanic about customer
+                    DatabaseReference mechanicRef = FirebaseDatabase.getInstance().getReference().child( "Users").child("Mechanics" ).child( mechanicFoundID );
+                    String customerId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    HashMap map = new HashMap();
+                    map.put("customerRideId",customerId);
+                    mechanicRef.updateChildren( map );
+
+                    //belwo for getting mechanic location for the customer
+                    GetMechanicLocation();
+                    mRequestBtn.setText( "Looking for Mechanic Location......." );
 
 
                 }
-            } );
 
+            }
+
+
+            @Override
+            public void onKeyExited(String key) {
+
+            }
+
+            @Override
+            public void onKeyMoved(String key, GeoLocation location) {
+
+            }
+
+            @Override
+            public void onGeoQueryReady() {
+                if (!mechanicFound)
+                {
+                    radius++;
+                    getClosestMechanic();
                 }
+            }
 
+            @Override
+            public void onGeoQueryError(DatabaseError error) {
+
+            }
+        } );
+    }
+    private Marker mMechanicMarker;
+    private DatabaseReference mechanicLocationRef;
+    private ValueEventListener mechanicLocationRefListener;
+    private void GetMechanicLocation()
+    {
+        mechanicLocationRef = FirebaseDatabase.getInstance().getReference().child( "MechanicWorking" ).child( mechanicFoundID ).child( "l" );
+        mechanicLocationRefListener = mechanicLocationRef.addValueEventListener( new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists() && requestBol) {
+                    List<Object> map = (List<Object>) dataSnapshot.getValue();
+                    double locationLat = 0;
+                    double locationLng = 0;
+                    mRequestBtn.setText( "Mechanic Found" );
+                    if (map.get( 0 ) != null) {
+                        locationLat = Double.parseDouble( map.get( 0 ).toString() );
+                    }
+                    if (map.get( 1 ) != null) {
+                        locationLng = Double.parseDouble( map.get( 1 ).toString() );
+                    }
+                    LatLng mechanicLatLng = new LatLng( locationLat, locationLng );
+                    if (mMechanicMarker != null) {
+                        mMechanicMarker.remove();
+                    }
+                    Location loc1 = new Location( "" );
+                    loc1.setLatitude( pickupLocation.latitude );
+                    loc1.setLongitude( pickupLocation.longitude );
+
+                    Location loc2 = new Location( "" );
+                    loc2.setLatitude(mechanicLatLng.latitude );
+                    loc2.setLongitude(mechanicLatLng.longitude );
+
+                    float distance = loc1.distanceTo( loc2 );
+
+                    if (distance<100){
+                        mRequestBtn.setText( "Mechanic is here" );
+                    }else {
+                        mRequestBtn.setText( "Mechanic Found:" + String.valueOf( distance ) );
+                    }
+
+
+                    mRequestBtn.setText( "Mechanic Found:" + String.valueOf( distance ) );
+
+
+                    mMechanicMarker = mMap.addMarker( new MarkerOptions().position( mechanicLatLng ).title( "your mechanic" ) .icon( BitmapDescriptorFactory.fromResource( R.mipmap.ic_launcherg) ));
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        } );
+    }
+//already in gmap app
 
     private boolean CheckGooglePlayServices() {
         GoogleApiAvailability googleAPI = GoogleApiAvailability.getInstance();
@@ -144,10 +283,8 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
         return true;
     }
 
-
-
-        @Override
-        public void onMapReady(GoogleMap googleMap) {
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
         //Initialize Google Play Services
@@ -163,12 +300,8 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
             mMap.setMyLocationEnabled(true);
         }
 
-
     }
-
-
-
-        protected synchronized void buildGoogleApiClient() {
+    protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -176,9 +309,8 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
                 .build();
         mGoogleApiClient.connect();
     }
-
-        @Override
-        public void onConnected(Bundle bundle) {
+    @Override
+    public void onConnected(Bundle bundle) {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(1000);
         mLocationRequest.setFastestInterval(1000);
@@ -192,13 +324,13 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
 
 
 
-        @Override
-        public void onConnectionSuspended(int i) {
+    @Override
+    public void onConnectionSuspended(int i) {
 
     }
 
-        @Override
-        public void onLocationChanged(Location location) {
+    @Override
+    public void onLocationChanged(Location location) {
         Log.d("onLocationChanged", "entered");
 
         mLastLocation = location;
@@ -213,9 +345,7 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
 
-
         Toast.makeText(CustomerMapsActivity.this,"Your Current Location", Toast.LENGTH_LONG).show();
-
 
         //stop location updates
         if (mGoogleApiClient != null) {
@@ -225,13 +355,13 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
 
     }
 
-        @Override
-        public void onConnectionFailed(ConnectionResult connectionResult) {
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
 
     }
-
-        public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
-        public boolean checkLocationPermission(){
+    //already in gmap app
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
+    public boolean checkLocationPermission(){
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -261,50 +391,44 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
             return true;
         }
     }
-
-        @Override
-        public void onRequestPermissionsResult(int requestCode,
-        String permissions[], int[] grantResults) {
+    //already in gmap
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_LOCATION: {
                 // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                     // permission was granted. Do the
                     // contacts-related task you need to do.
-                    if (ContextCompat.checkSelfPermission(this,
-                            Manifest.permission.ACCESS_FINE_LOCATION)
-                            == PackageManager.PERMISSION_GRANTED) {
+                    if (ContextCompat.checkSelfPermission( this, Manifest.permission.ACCESS_FINE_LOCATION ) == PackageManager.PERMISSION_GRANTED) {
 
                         if (mGoogleApiClient == null) {
                             buildGoogleApiClient();
                         }
-                        mMap.setMyLocationEnabled(true);
+                        mMap.setMyLocationEnabled( true );
                     }
 
                 } else {
 
                     // Permission denied, Disable the functionality that depends on this permission.
-                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
+                    Toast.makeText( this, "permission denied", Toast.LENGTH_LONG ).show();
                 }
                 return;
             }
-
         }
     }
 
-    private void LogoutCustomer() {
-        Intent welcomeIntent = new Intent( CustomerMapsActivity.this,WelcomeActivity.class);
-        welcomeIntent.addFlags( Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-
-        startActivity( welcomeIntent );
-        finish();
-
-    }
+    @Override
+    protected void onStop() {
+        super.onStop();
 
 
 
     }
+
+}
+
 
 
