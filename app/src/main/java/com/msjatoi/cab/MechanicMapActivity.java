@@ -317,8 +317,8 @@ private TextView mCustomerName,mCustomerPhone;
                 case "":
                     //  geoFireWorking.removeLocation( userId );
                     //after removing above code app is running
-                    geoFireAvailable.removeLocation( userId );
-                    geoFireWorking.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                    geoFireWorking.removeLocation( userId );
+                    geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
                         @Override
                         public void onComplete(String key, DatabaseError error) {
 
