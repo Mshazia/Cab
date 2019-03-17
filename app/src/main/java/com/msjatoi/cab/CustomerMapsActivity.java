@@ -135,7 +135,7 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
                                 }
                             });
                     pickupLocation = new LatLng( mLastLocation.getLatitude(),mLastLocation.getLongitude());
-                    pickupMarker =  mMap.addMarker( new MarkerOptions().position( pickupLocation ).title( "Pickup here" ).icon( BitmapDescriptorFactory.fromResource( R.mipmap.ic_launcherg ) ) );
+                    pickupMarker =  mMap.addMarker( new MarkerOptions().position( pickupLocation ).title( "Pickup here" ).icon( BitmapDescriptorFactory.fromResource( R.mipmap.ic_mechanic ) ) );
 
                     mRequestBtn.setText( "Getting your Mechanic....." );
                     getClosestMechanic();
@@ -427,6 +427,7 @@ public class CustomerMapsActivity extends FragmentActivity implements OnMapReady
 
 
     }
+
 
 }
 

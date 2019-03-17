@@ -142,7 +142,7 @@ private TextView mCustomerName,mCustomerPhone;
                     mCustomerInfo.setVisibility( View.GONE );
                     mCustomerName.setText( "" );
                     mCustomerPhone.setText( "" );
-                    mCustomerProfileImage.setImageResource( R.mipmap.ic_profile_round );
+                    mCustomerProfileImage.setImageResource( R.mipmap.ic_profile );
 
                 }
             }
@@ -177,7 +177,7 @@ private TextView mCustomerName,mCustomerPhone;
 
                     }
                     LatLng mechanicLatLng = new LatLng( locationLat,locationLng );
-                    pickupMarker = mMap.addMarker( new MarkerOptions().position( mechanicLatLng ).title( "pickup location") );
+                    pickupMarker = mMap.addMarker( new MarkerOptions().position( mechanicLatLng ).title( "pickup location").icon( BitmapDescriptorFactory.fromResource( R.mipmap.ic_location)));
 
                 }
             }
@@ -317,8 +317,8 @@ private TextView mCustomerName,mCustomerPhone;
                 case "":
                     //  geoFireWorking.removeLocation( userId );
                     //after removing above code app is running
-
-                    geoFireAvailable.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
+                    geoFireAvailable.removeLocation( userId );
+                    geoFireWorking.setLocation( userId, new GeoLocation( location.getLatitude(), location.getLongitude() ), new GeoFire.CompletionListener() {
                         @Override
                         public void onComplete(String key, DatabaseError error) {
 

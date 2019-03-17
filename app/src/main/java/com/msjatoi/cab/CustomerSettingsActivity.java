@@ -41,7 +41,7 @@ public class CustomerSettingsActivity extends AppCompatActivity {
     private String mName;
     private String mPhone;
 
-    private Uri  resultUri;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate( savedInstanceState );
