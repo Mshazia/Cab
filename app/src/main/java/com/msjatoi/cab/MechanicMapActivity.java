@@ -16,6 +16,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.geofire.GeoFire;
@@ -65,6 +68,11 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
     private String customerId = "";
 
     private Boolean isLogingOut  = false;
+    private SupportMapFragment mapFragment;
+    private LinearLayout mCustomerInfo;
+    private ImageView mCustomerProfileImage;
+
+private TextView mCustomerName,mCustomerPhone;
 
 
     @Override
@@ -84,6 +92,11 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById( R.id.map );
         mapFragment.getMapAsync( this );
+
+        mCustomerInfo = (LinearLayout)findViewById( R.id.customerinfo );
+        mCustomerProfileImage = findViewById( R.id.customerProfileImage );
+        mCustomerName = findViewById( R.id.customerName );
+        mCustomerPhone = findViewById( R.id.customerPhoen );
 
 
         mLogout = findViewById( R.id.logoutbtnm );
@@ -113,6 +126,10 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
                 if (dataSnapshot.exists()){
                     customerId = dataSnapshot.getValue().toString();
                     getAssignedCustomerPickupLocation();
+                    //for display customer information
+                    getAssignedCustomerInfo();
+
+
                 }else {
                     customerId = "";
                     if (pickupMarker!= null){
@@ -122,6 +139,11 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
                         AssignedCustomerPickupLocationRef.removeEventListener(  AssignedCustomerPickupLocationRefListener);
 
                     }
+                    mCustomerInfo.setVisibility( View.GONE );
+                    mCustomerName.setText( "" );
+                    mCustomerPhone.setText( "" );
+                    mCustomerProfileImage.setImageResource( R.mipmap.ic_profile_round );
+
                 }
             }
 
@@ -132,6 +154,7 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
         } );
 
     }
+
     Marker pickupMarker;
     private  DatabaseReference AssignedCustomerPickupLocationRef;
     private ValueEventListener AssignedCustomerPickupLocationRefListener;
@@ -156,6 +179,38 @@ public class MechanicMapActivity extends FragmentActivity implements OnMapReadyC
                     LatLng mechanicLatLng = new LatLng( locationLat,locationLng );
                     pickupMarker = mMap.addMarker( new MarkerOptions().position( mechanicLatLng ).title( "pickup location") );
 
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        } );
+    }
+    private void getAssignedCustomerInfo(){
+        mCustomerInfo.setVisibility( View.VISIBLE );
+        DatabaseReference  mCustomerDatabase = FirebaseDatabase.getInstance().getReference().child( "Users" ).child( "Customers" ).child( customerId );
+
+        mCustomerDatabase.addListenerForSingleValueEvent( new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()  &&  dataSnapshot.getChildrenCount()>0){
+                    Map<String,Object> map = (Map<String, Object>) dataSnapshot.getValue();
+                    if (map.get( "name" )!= null){
+
+                        mCustomerName.setText( map.get( "name" ).toString() );
+                    }
+
+                    if (map.get( "phone " )!= null){
+                        mCustomerPhone.setText( map.get( "phone " ).toString());
+
+                    }
+                    //when we set image then the code for image will be right here
+
+
+                    //if Mechanic is not working with this user
+                    mCustomerInfo.setVisibility( View.GONE);
                 }
             }
 
